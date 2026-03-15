@@ -84,6 +84,7 @@ async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def setcity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Ensure the user provided a city name
     if not context.args:
         await update.message.reply_text("Usage: /setcity CITY_NAME")
         return
@@ -92,6 +93,7 @@ async def setcity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
     try:
+        # Verify the city by attempting to fetch Shabbat time
         candle_time = get_candle_lighting_datetime(city)
 
         if candle_time is None:
@@ -108,6 +110,7 @@ async def setcity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     existing_data = user_cities.get(chat_id, {})
+    # Store the city and keep the last reminder date if it exists
     last_sent = existing_data.get("last_sent")
 
     user_cities[chat_id] = {
@@ -146,9 +149,11 @@ async def when(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def should_send_reminder(now, candle_time, last_sent_date):
+    # Reminder should be sent 30 minutes before candle lighting
     reminder_time = candle_time - timedelta(minutes=30)
 
-    # חלון של 2 דקות כדי לא לפספס
+    # Small time window to avoid missing the reminder
+
     diff_seconds = abs((now - reminder_time).total_seconds())
 
     if diff_seconds > 120:
@@ -156,6 +161,7 @@ def should_send_reminder(now, candle_time, last_sent_date):
 
     shabbat_date = candle_time.date().isoformat()
 
+    # Prevent sending the reminder twice for the same Shabbat
     if last_sent_date == shabbat_date:
         return False
 
@@ -198,6 +204,8 @@ async def sendnow(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def shabbat_reminder(context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now(ISRAEL_TZ)
 
+    # Iterate over all registered users
+
     print("Scheduled reminder is running")
     print("Now:", now.strftime("%Y-%m-%d %H:%M:%S"))
     print("user_cities =", user_cities)
@@ -213,8 +221,11 @@ async def shabbat_reminder(context: ContextTypes.DEFAULT_TYPE):
                 print(f"Could not get Shabbat time for {city}")
                 continue
 
+            # Check if it's time to send the reminder
             if should_send_reminder(now, candle_time, last_sent):
                 await send_reminder_to_chat(context.bot, chat_id, city, candle_time)
+
+                # Save the date to prevent duplicate reminders
 
                 user_cities[chat_id]["last_sent"] = candle_time.date().isoformat()
                 save_user_cities(user_cities)

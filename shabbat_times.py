@@ -6,6 +6,11 @@ ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
 
 
 def get_candle_lighting_datetime(city="Jerusalem", country="IL"):
+    """
+    Fetch the candle lighting time for a given city using the Hebcal API.
+    Returns a timezone-aware datetime object or None if not found.
+    """
+    
     url = "https://www.hebcal.com/shabbat"
     params = {
         "cfg": "json",
@@ -19,6 +24,7 @@ def get_candle_lighting_datetime(city="Jerusalem", country="IL"):
 
     data = response.json()
 
+    # Search for the candle lighting event in the returned items
     for item in data.get("items", []):
         title = item.get("title", "").lower()
 
@@ -28,7 +34,7 @@ def get_candle_lighting_datetime(city="Jerusalem", country="IL"):
                 return None
 
             dt = datetime.fromisoformat(date_str)
-
+            # Ensure datetime is in Israel timezone
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=ISRAEL_TZ)
             else:
