@@ -1,8 +1,11 @@
 import requests
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
 
 
-def get_candle_lighting(city="Jerusalem", country="IL"):
+def get_candle_lighting_datetime(city="Jerusalem", country="IL"):
     url = "https://www.hebcal.com/shabbat"
     params = {
         "cfg": "json",
@@ -25,6 +28,20 @@ def get_candle_lighting(city="Jerusalem", country="IL"):
                 return None
 
             dt = datetime.fromisoformat(date_str)
-            return dt.strftime("%H:%M")
+
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=ISRAEL_TZ)
+            else:
+                dt = dt.astimezone(ISRAEL_TZ)
+
+            return dt
 
     return None
+
+
+def is_valid_city(city="Jerusalem", country="IL"):
+    try:
+        candle_time = get_candle_lighting_datetime(city, country)
+        return candle_time is not None
+    except requests.RequestException:
+        return False
